@@ -1,0 +1,12 @@
+
+- name: make sure mariadb is enabled to start up on boot
+  service: name=mysql enabled=yes state=started
+  ignore_errors: yes
+
+- name: pause
+  pause: seconds=10
+
+- name: print cluster status
+  shell: mysql -e "show status like 'wsrep_cluster_size'" | grep wsrep_cluster_size 
+  register: cluster_size
+

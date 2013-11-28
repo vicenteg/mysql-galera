@@ -1,0 +1,4 @@
+datadir: /mnt/mysql
+galera_cache_size: 3G
+innodb_buffer_pool_size: 512M
+clustername: galera-in-ec2

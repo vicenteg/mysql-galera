@@ -1,0 +1,37 @@
+#- name: check for the existence of my.cnf
+#  stat: path=/etc/mysql/my.cnf
+#  register: my_cnf
+
+# Bootstrap only
+- name: install bootstrap configuration file
+  template: src=my.cnf-bootstrap.j2 dest=/etc/mysql/my.cnf mode=0644
+#  when: my_cnf.stat.exists == false
+  register: bootstrap_config
+
+
+# we are repeating ourselves across tasks for now because
+# the mariadb package wants to start the database up immediately
+# after install
+#- name: install mariadb with galera and client
+#  apt: name={{item}} state=present
+#  with_items:
+#    - libmysqlclient18
+#    - mysql-common
+#    - mariadb-galera-server
+#    - mariadb-client
+#  # this often fails for a reason I can't figure, so ignore it and check later.
+#  ignore_errors: yes
+
+- name: check whether mysql is running
+  command: service mysql status
+  register: mysql_status
+  ignore_errors: yes
+
+- name: install mysql tables
+  command: /usr/bin/mysql_install_db
+  when: mysql_status.rc != 0
+
+- name: start mysql if it's not running
+  service: name=mysql state=started enabled=yes
+  when: mysql_status.rc != 0
+  ignore_errors: yes

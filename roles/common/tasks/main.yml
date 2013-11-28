@@ -1,0 +1,64 @@
+- name: update apt
+  apt: update_cache=yes
+
+- name: download mysql+galera
+  command: 
+    chdir=/root
+    creates=/root/mysql-server-wsrep-5.5.34-25.9-amd64.deb
+    wget https://launchpad.net/codership-mysql/5.5/5.5.34-25.9/+download/mysql-server-wsrep-5.5.34-25.9-amd64.deb
+
+- name: download galera library
+  command:
+    chdir=/root
+    creates=/root/galera-25.2.8-amd64.deb
+    wget https://launchpad.net/galera/2.x/25.2.8/+download/galera-25.2.8-amd64.deb
+
+- name: create mysql user
+  user: name=mysql state=present
+
+
+#- name: install packages for add-apt-repository
+#  apt: name={{item}} state=present
+#  with_items:
+#    - python-software-properties
+#    - software-properties-common
+
+#- name: install apt-key for mariadb
+#  apt_key: state=present data="{{ lookup('file', 'gpgkey.asc') }}"
+
+#- name: add mariadb repository
+#  apt_repository: state=present repo="deb http://ftp.osuosl.org/pub/mariadb/repo/5.5/ubuntu precise main" update_cache=yes
+
+- name: create /etc/mysql
+  file: path=/etc/mysql state=directory mode=0750 owner=mysql group=mysql
+
+- name: create /var/log/mysql
+  file: path=/var/log/mysql state=directory mode=0750 owner=mysql group=mysql
+
+- name: install my.cnf
+  template: dest=/etc/mysql/my.cnf src=my.cnf.j2 mode=0640
+
+- name: ensure ${datadir} exists
+  file: path={{datadir}} state=directory owner=mysql group=mysql mode=0750
+
+- name: install dependencies
+  apt: name={{item}} state=present
+  with_items:
+    - libssl0.9.8
+    - libmysqlclient18
+    - libdbi-perl
+    - libdbd-mysql-perl
+    - libaio1
+    - mysql-client
+
+- name: check whether mysql-server-wsrep is already installed
+  command: dpkg -l mysql-server-wsrep
+  register: dpkg
+  ignore_errors: yes
+
+- name: install mysql+galera
+  command: chdir=/root dpkg -i mysql-server-wsrep-5.5.34-25.9-amd64.deb
+  when: dpkg.rc == 1
+
+- name: install galera library
+  command: chdir=/root dpkg -i galera-25.2.8-amd64.deb

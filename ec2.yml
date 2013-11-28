@@ -1,0 +1,14 @@
+- hosts: local
+  user: root
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: configure three m1.smalls for testing
+      ec2:
+        region: us-east-1
+        key_name: "macbook rsa"
+        instance_type: m1.small
+        image: ami-a73264ce
+        wait: yes
+        count: 3
+        group: default

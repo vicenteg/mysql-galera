@@ -1,0 +1,44 @@
+# prepare the environment on all nodes
+- hosts: ec2
+  user: root
+  roles:
+    - common
+
+# start up the first node, bootstrapping a new cluster
+- hosts: ec2[0]
+  user: root
+  roles:
+    - bootstrap
+
+# check the cluster
+- hosts: ec2[0]
+  user: root
+  tasks:
+  - name: check status
+    shell: mysql -e "show status like 'wsrep_cluster_size'" | grep cluster | awk "{print $2}"
+    register: cluster_size
+
+  - name: print cluster_size
+    debug: msg="${cluster_size}"
+
+
+
+# start up the other nodes, joining the cluster
+- hosts: ec2[1-2]
+  user: root
+  roles:
+    - nodes
+
+# # check the cluster
+# - hosts: ec2[0]
+#   user: root
+#   tasks:
+#   - name: check status
+#     command: mysql -e "show status like 'wsrep_cluster_size'"
+
+# # re-run the common playbook to replace the bootstrap my.cnf
+# # with the production one
+# - hosts: ec2[0]
+#   user: root
+#   roles:
+#     - common
