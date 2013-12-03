@@ -2,6 +2,7 @@
 [mysqld]
 query_cache_size=0
 binlog_format=ROW
+log_bin = '{{ansible_hostname}}'
 default_storage_engine=innodb
 innodb_autoinc_lock_mode=2
 
@@ -19,7 +20,7 @@ wsrep_cluster_address=gcomm://{% for host,vars in hostvars.items() -%}
 wsrep_cluster_name='{{clustername}}'
 wsrep_node_address='{{ansible_eth0.ipv4.address}}'
 wsrep_node_name='{{ansible_hostname}}'
-#wsrep_sst_method=xtrabackup
+#wsrep_sst_method=mysqldump
 #wsrep_sst_auth=root:rootpa$$
 
 user        = mysql

@@ -1,0 +1,33 @@
+- name: create sbtest database
+  mysql_db: name="sbtest-{{ansible_hostname}}" state=present
+
+- name: create sbtest user
+  mysql_user: name=sbtest password="benchit!" priv="sbtest-{{ansible_hostname}}.*:ALL" state=present host={{item}}
+  with_items:
+    - "{{ansible_hostname}}"
+    - 127.0.0.1
+    - ::1
+    - localhost
+
+- name: install sysbench
+  apt: name=sysbench state=installed
+
+- name: prepare sysbench
+  command: sysbench --test=oltp --mysql-user=sbtest --mysql-db=sbtest-{{ansible_hostname}} --mysql-password='benchit!' prepare
+
+- name: run sysbench oltp
+  command: sysbench --test=oltp --mysql-user=sbtest --mysql-db=sbtest-{{ansible_hostname}} --mysql-password='benchit!' run
+
+- name: clean up sysbench tables
+  command: sysbench --test=oltp --mysql-user=sbtest --mysql-db=sbtest-{{ansible_hostname}} --mysql-password='benchit!' cleanup
+
+- name: drop sysbench database
+  mysql_db: name="sbtest-{{ansible_hostname}}" state=absent
+
+- name: drop sysbench user
+  mysql_user: name=sbtest state=absent host={{item}}
+  with_items:
+    - "{{ansible_hostname}}"
+    - 127.0.0.1
+    - ::1
+    - localhost

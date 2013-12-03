@@ -1,4 +1,5 @@
 datadir: /mnt/mysql
-galera_cache_size: 3G
+galera_cache_size: 512M
 innodb_buffer_pool_size: 512M
 clustername: galera-in-ec2
+mysql_password: root

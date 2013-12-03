@@ -1,37 +1,39 @@
-#- name: check for the existence of my.cnf
-#  stat: path=/etc/mysql/my.cnf
-#  register: my_cnf
-
-# Bootstrap only
-- name: install bootstrap configuration file
-  template: src=my.cnf-bootstrap.j2 dest=/etc/mysql/my.cnf mode=0644
-#  when: my_cnf.stat.exists == false
-  register: bootstrap_config
-
-
-# we are repeating ourselves across tasks for now because
-# the mariadb package wants to start the database up immediately
-# after install
-#- name: install mariadb with galera and client
-#  apt: name={{item}} state=present
-#  with_items:
-#    - libmysqlclient18
-#    - mysql-common
-#    - mariadb-galera-server
-#    - mariadb-client
-#  # this often fails for a reason I can't figure, so ignore it and check later.
-#  ignore_errors: yes
-
-- name: check whether mysql is running
+- name: is mysql already running?
   command: service mysql status
   register: mysql_status
   ignore_errors: yes
 
 - name: install mysql tables
   command: /usr/bin/mysql_install_db
-  when: mysql_status.rc != 0
+  when: mysql_status != 0
 
-- name: start mysql if it's not running
-  service: name=mysql state=started enabled=yes
-  when: mysql_status.rc != 0
-  ignore_errors: yes
+- name: bootstrap the cluster
+  command: service mysql start --wsrep_new_cluster
+  when: mysql_status != 0
+
+- name: check status
+  shell: mysql -e "show status like 'wsrep_cluster_size'" | grep cluster | awk '{print $2}'
+  register: cluster_size
+
+- name: print cluster_size
+  debug: msg="{{cluster_size.stdout}}"
+
+- name: set password for root user
+  mysql_user: name=root password={{mysql_password}} host={{item}} state=present priv="*.*:ALL,GRANT"
+  with_items:
+    - "{{ansible_hostname}}"
+    - 127.0.0.1
+    - ::1
+    - localhost
+
+- name: write a .my.cnf
+  template: src=dot-my.cnf.j2 dest=/root/.my.cnf mode=0600 owner=root group=root
+
+- name: delete anonymous MySQL server user
+  action: mysql_user user="" host="$server_hostname" state="absent"
+
+- name: delete anonymous MySQL server user for localhost
+  action: mysql_user user="" state="absent"
+
+- name: remove the MySQL test database
+  action: mysql_db db=test state=absent

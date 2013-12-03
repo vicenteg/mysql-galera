@@ -1,12 +1,19 @@
+- name: write a .my.cnf
+  template: src=dot-my.cnf.j2 dest=/root/.my.cnf mode=0600 owner=root group=root
 
-- name: make sure mariadb is enabled to start up on boot
+- name: install mysql tables
+  command: /usr/bin/mysql_install_db
+
+- name: make sure mysql is enabled to start up on boot
   service: name=mysql enabled=yes state=started
   ignore_errors: yes
 
-- name: pause
-  pause: seconds=10
+- name: wait for mysql to become available
+  wait_for: port=3306
 
-- name: print cluster status
-  shell: mysql -e "show status like 'wsrep_cluster_size'" | grep wsrep_cluster_size 
+- name: check status
+  shell: mysql -e "show status like 'wsrep_cluster_size'" | grep cluster | awk '{print $2}'
   register: cluster_size
 
+- name: print cluster_size
+  debug: msg='{{cluster_size.stdout}}'
