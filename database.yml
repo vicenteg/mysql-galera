@@ -1,17 +1,17 @@
-- hosts: ec2
+- hosts: database-servers
   user: root
   roles:
     - common
 
 # start up the first node, bootstrapping a new cluster
-- hosts: ec2[0]
+- hosts: database-servers[0]
   user: root
   roles:
     - bootstrap
     - sysbench
 
 # start up the other nodes, joining the cluster
-- hosts: ec2[1]:ec2[2]
+- hosts: database-servers[1]:database-servers[2]
   user: root
   roles:
     - nodes

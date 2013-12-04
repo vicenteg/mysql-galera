@@ -1,0 +1,5 @@
+datadir: /var/lib/mysql/data
+galera_cache_size: 512M
+innodb_buffer_pool_size: 512M
+clustername: galera
+mysql_password: root
